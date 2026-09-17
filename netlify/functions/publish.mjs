@@ -1,0 +1,3 @@
+import {auth,commitFiles} from './_github.mjs';
+export default async(req)=>{if(req.method!=='POST')return new Response('Method not allowed',{status:405});if(!auth(req))return Response.json({ok:false,error:'관리자 비밀번호가 올바르지 않습니다.'},{status:401});try{const b=await req.json();if(!b?.files?.length)throw new Error('발행할 파일이 없습니다.');if(JSON.stringify(b).length>5_500_000)throw new Error('이미지 포함 발행 용량이 너무 큽니다. 이미지를 줄여주세요.');const sha=await commitFiles(b.files,`Publish: ${b.title||'WAWA post'}`);return Response.json({ok:true,sha,message:'GitHub 반영 완료. Netlify 자동 배포가 시작됩니다.'})}catch(e){return Response.json({ok:false,error:e.message},{status:500})}}
+export const config={path:'/api/publish'};

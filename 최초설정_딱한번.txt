@@ -1,0 +1,30 @@
+WAWA v12 원클릭 발행 — 최초 1회 설정
+
+1) 이 v12 폴더 전체를 GitHub WAWA 저장소 main 브랜치에 반영합니다.
+2) Netlify에서 WAWA 사이트 → Project configuration(또는 Site configuration) → Environment variables 로 이동합니다.
+3) 아래 5개 환경변수를 추가합니다.
+
+GITHUB_TOKEN = GitHub fine-grained personal access token
+GITHUB_OWNER = jangssam-class
+GITHUB_REPO = WAWA
+GITHUB_BRANCH = main
+ADMIN_PASSWORD = 관리자에서 사용할 원하는 비밀번호
+
+GitHub 토큰 권한:
+- Repository access: WAWA 저장소만 선택
+- Repository permissions → Contents: Read and write
+
+4) Netlify에서 새 배포가 완료되면
+https://wawa-academy.netlify.app/admin.html 을 엽니다.
+5) ADMIN_PASSWORD에 설정한 비밀번호를 입력하고 포스팅 작성 → “사이트에 바로 발행”을 누릅니다.
+6) 이후에는 GitHub에 직접 파일을 올릴 필요가 없습니다.
+
+예약 발행:
+- 날짜/시간을 선택하고 “온라인 예약 등록”을 누릅니다.
+- Netlify Scheduled Function이 15분 간격으로 확인합니다.
+- 따라서 예약 시각 정각이 아니라 최대 약 15분 정도 뒤에 발행될 수 있습니다.
+
+보안:
+- GITHUB_TOKEN은 admin.html에 넣지 않습니다.
+- 토큰은 Netlify 환경변수에만 저장합니다.
+- admin.html에는 noindex,nofollow가 유지됩니다.

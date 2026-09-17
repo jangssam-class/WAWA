@@ -1,0 +1,3 @@
+import {getJson,commitFiles} from './_github.mjs';
+export default async()=>{try{let list=await getJson('data/schedules.json',[]),now=Date.now(),due=list.filter(x=>x.status==='예약대기'&&new Date(x.at).getTime()<=now);for(const item of due){await commitFiles(item.files,`Scheduled publish: ${item.title}`);item.status='발행완료';item.publishedAt=new Date().toISOString();delete item.files}if(due.length)await commitFiles([{path:'data/schedules.json',content:JSON.stringify(list,null,2)}],`Complete ${due.length} scheduled post(s)`);console.log(`published ${due.length}`)}catch(e){console.error(e)}};
+export const config={schedule:'*/15 * * * *'};
