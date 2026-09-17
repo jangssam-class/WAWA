@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-Sitemap: https://example.com/sitemap.xml
+Disallow: /admin/
+Sitemap: https://wawa-academy.netlify.app/sitemap.xml

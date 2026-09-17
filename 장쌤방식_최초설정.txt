@@ -1,0 +1,13 @@
+WAWA v13 - 장쌤 Premium과 같은 Decap CMS 발행 방식
+
+1. 이 폴더 전체를 GitHub WAWA 저장소 main 브랜치에 최초 1회 반영합니다.
+2. Netlify의 wawa-academy 프로젝트에서 Identity를 활성화합니다.
+3. Identity의 Git Gateway를 활성화합니다.
+4. 관리자 사용자를 초대/등록합니다.
+5. 이후 https://wawa-academy.netlify.app/admin/ 에 로그인합니다.
+6. 포스팅 관리 → 새 포스팅 추가 → 이미지/본문 입력 → Publish 저장.
+7. Decap CMS가 Git Gateway를 통해 저장소에 반영하고 Netlify가 자동 재배포합니다.
+8. build.js가 독립 posts/*.html, blog.html, sitemap.xml, rss.xml, robots.txt를 자동 생성/갱신합니다.
+
+※ GITHUB_TOKEN / GITHUB_OWNER / GITHUB_REPO / ADMIN_PASSWORD 환경변수는 이 버전에서 사용하지 않습니다.
+※ 예약 발행은 Decap CMS의 simple publish 방식에는 포함되지 않습니다. 예약 시각에 자동 공개하려면 별도 스케줄러가 필요합니다.
