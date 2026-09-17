@@ -27,7 +27,7 @@ subjectTabs.forEach(tab=>tab.addEventListener('click',()=>{
 }));
 
 // Scroll reveal animation
-const revealTargets=[...document.querySelectorAll('.why,.detail,.subjects,.cta,.why-grid article,.detail-grid article')];
+const revealTargets=[...document.querySelectorAll('.why,.stats,.brand-video,.detail,.subjects,.cta,.why-grid article,.detail-grid article')];
 revealTargets.forEach(el=>el.classList.add('reveal'));
 if('IntersectionObserver' in window){
   const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
