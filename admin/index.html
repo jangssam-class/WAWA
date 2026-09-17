@@ -3,5 +3,5 @@
 <meta name="robots" content="noindex,nofollow,noarchive"><title>WAWA 교육정보 관리자</title>
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script></head>
 <body><script>
-if(window.netlifyIdentity){window.netlifyIdentity.on('init',u=>{if(!u)window.netlifyIdentity.open('login')});window.netlifyIdentity.on('login',()=>window.netlifyIdentity.close())}
+if(window.netlifyIdentity){window.netlifyIdentity.on('init',u=>{if(!u&&!/(?:invite_token|confirmation_token|recovery_token|access_token)=/.test(location.hash))window.netlifyIdentity.open('login')});window.netlifyIdentity.on('login',()=>window.netlifyIdentity.close())}
 </script><script src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script></body></html>
