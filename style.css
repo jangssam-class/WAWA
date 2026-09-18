@@ -44,3 +44,5 @@ body{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic"
 .center-map-actions a{flex:1;text-align:center;padding:10px 8px;border-radius:10px;font-size:12px;font-weight:900;border:1px solid #d8e8f7;color:#176fd2;background:#f8fbff}
 .center-map-actions a:first-child{background:#247cf2;color:#fff;border-color:#247cf2}
 @media(max-width:560px){.center-map-frame{height:175px}}
+
+.center-card .registration{margin:8px 0;color:#526b8c;font-size:13px;line-height:1.55}.center-card .registration b{color:#173a6b;margin-right:6px}
