@@ -3,9 +3,8 @@ const ROOT=__dirname, SITE='https://wawa-academy.netlify.app';
 const postDir=path.join(ROOT,'content/posts');
 let rawPosts=[];
 if(fs.existsSync(postDir)) for(const name of fs.readdirSync(postDir).filter(n=>n.endsWith('.json'))){try{rawPosts.push(JSON.parse(fs.readFileSync(path.join(postDir,name),'utf8')))}catch(e){console.warn('skip invalid post',name)}}
-// 구버전 단일 posts.json은 기존 글 마이그레이션/호환용으로만 읽고 slug 중복은 폴더형 글을 우선합니다.
-const legacyFile=path.join(ROOT,'content/posts.json');
-if(fs.existsSync(legacyFile)){try{const legacy=JSON.parse(fs.readFileSync(legacyFile,'utf8'));for(const p of (legacy.posts||[]))if(p&&p.slug&&!rawPosts.some(x=>x&&x.slug===p.slug))rawPosts.push(p)}catch(e){}}
+// 게시글의 단일 기준(Source of Truth)은 관리자 CMS가 관리하는 content/posts/*.json 뿐입니다.
+// 구버전 content/posts.json은 절대 읽지 않습니다. 관리자에 없는 글이 다시 노출되는 문제를 방지합니다.
 // _helper 안전 복구: 실제 필드가 비어 있을 때만 자동작성 원본으로 채웁니다.
 const normalized=rawPosts.map(p=>{
   if(!p||!p._helper)return p;
@@ -17,7 +16,10 @@ const md=s=>String(s||'').split(/\n+/).filter(Boolean).map(x=>x.startsWith('## '
 const detailBlock=p=>{if(!p.detailImage)return '';const src=p.detailImage.startsWith('/')?p.detailImage:'/'+p.detailImage;return `<figure class="detail-page"><img src="${esc(src)}" alt="${esc(p.detailImageAlt||p.title+' 상세페이지')}"></figure>`};
 const bodyWithDetail=p=>{const raw=String(p.body||'');const block=detailBlock(p);if(!block)return md(raw);const pos=p.detailImagePosition||'middle';if(pos==='top')return block+md(raw);if(pos==='bottom')return md(raw)+block;const parts=raw.split(/\n+/).filter(Boolean);const cut=Math.max(1,Math.ceil(parts.length/2));return md(parts.slice(0,cut).join('\n'))+block+md(parts.slice(cut).join('\n'));};
 const faq=p=>[1,2,3].map(n=>({q:p['q'+n],a:p['a'+n]})).filter(x=>x.q&&x.a);
-fs.mkdirSync(path.join(ROOT,'posts'),{recursive:true});
+const generatedDir=path.join(ROOT,'posts');
+fs.mkdirSync(generatedDir,{recursive:true});
+// CMS에서 삭제된 글의 예전 HTML이 배포 폴더에 남지 않도록 매 빌드마다 생성 HTML을 정리합니다.
+for(const name of fs.readdirSync(generatedDir)){if(name.endsWith('.html'))fs.unlinkSync(path.join(generatedDir,name));}
 for(const p of posts){const url=`${SITE}/posts/${p.slug}.html`, f=faq(p), image=p.image?`${SITE}${p.image.startsWith('/')?p.image:'/'+p.image}`:'';
 const articleJson={"@context":"https://schema.org","@type":"Article",headline:p.title,description:p.excerpt,datePublished:p.date,dateModified:p.date,author:{"@type":"Organization",name:"WAWA 소수정예학원"},publisher:{"@type":"Organization",name:"WAWA 소수정예학원"},mainEntityOfPage:url}; if(image)articleJson.image=image;
 const schemas=[articleJson];if(f.length)schemas.push({"@context":"https://schema.org","@type":"FAQPage",mainEntity:f.map(x=>({"@type":"Question",name:x.q,acceptedAnswer:{"@type":"Answer",text:x.a}}))});
@@ -29,7 +31,12 @@ const thumb=(p,i=0)=>{
   return src.startsWith('/')?src:src;
 };
 const cards=posts.map((p,i)=>`<a class="post-card" href="posts/${p.slug}.html"><img class="post-thumb" src="${esc(thumb(p,i))}" alt="${esc(p.imageAlt||p.detailImageAlt||p.title)}" loading="lazy"><div class="post-card-body"><small>${esc(p.category)}</small><h3>${esc(p.title)}</h3><p>${esc(p.excerpt)}</p><span class="post-arrow">자세히 읽기 →</span></div></a>`).join('');
-let blog=fs.readFileSync(path.join(ROOT,'blog.html'),'utf8'); const start=blog.indexOf('<div class="post-grid">'), end=start>=0?blog.indexOf('</div>',start):-1; if(start>=0&&end>=0) blog=blog.slice(0,start)+`<div class="post-grid">${cards}</div>`+blog.slice(end+6); fs.writeFileSync(path.join(ROOT,'blog.html'),blog);
+let blog=fs.readFileSync(path.join(ROOT,'blog.html'),'utf8');
+// 목록은 매 빌드마다 통째로 다시 생성합니다. 이전 카드 HTML이 남아 중복되는 문제를 차단합니다.
+const gridStart=blog.indexOf('<div class="post-grid">');
+const contactStart=gridStart>=0?blog.indexOf('<section class="blog-contact"',gridStart):-1;
+if(gridStart>=0&&contactStart>=0) blog=blog.slice(0,gridStart)+`<div class="post-grid">${cards}</div>`+blog.slice(contactStart);
+fs.writeFileSync(path.join(ROOT,'blog.html'),blog);
 // 메인 홈페이지 최신 교육정보 3개 자동 연결
 const homeCards=posts.slice(0,3).map((p,i)=>`<a class="home-edu-card" href="posts/${p.slug}.html"><img src="${esc(thumb(p,i))}" alt="${esc(p.imageAlt||p.detailImageAlt||p.title)}" loading="lazy"><div><small>${esc([p.region,p.category].filter(Boolean).join(' · '))}</small><h3>${esc(p.title)}</h3><p>${esc(p.excerpt)}</p><b>교육정보 보기 →</b></div></a>`).join('');
 const homeSection=`<!-- WAWA_EDU_START --><section class="home-education reveal" id="education"><div class="home-edu-head"><div><p class="eyebrow">WAWA EDUCATION CONTENT</p><h2>최신 교육정보</h2><p>학생과 학부모가 실제로 궁금해하는 학습·학원 선택 정보를 확인해보세요.</p></div><a href="blog.html">교육정보 전체보기 →</a></div><div class="home-edu-grid">${homeCards||'<p class="home-edu-empty">등록된 교육정보가 없습니다.</p>'}</div></section><!-- WAWA_EDU_END -->`;
