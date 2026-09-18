@@ -194,11 +194,11 @@
     }
   });
   window.netlifyIdentity.on('login', function(){
+    /* 메인 홈페이지에서는 로그인되어 있어도 관리자 페이지로 강제 이동하지 않습니다. */
     window.netlifyIdentity.close();
     if(location.hash && /(?:invite_token|confirmation_token|recovery_token|access_token)=/.test(location.hash)){
       history.replaceState(null, document.title, location.pathname + location.search);
     }
-    location.href='/admin/';
   });
 })();
 </script></body></html>

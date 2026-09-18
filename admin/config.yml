@@ -27,6 +27,7 @@ collections:
             add_to_top: true
             minimize_collapsed: true
             fields:
+              - { label: "✨ 자동 포스팅 작성", name: "_helper", widget: "wawa_autofill", required: false }
               - { label: "주소용 영문 이름", name: "slug", widget: "string", hint: "영문 소문자·숫자·하이픈만 사용 (예: busan-dongnae-middle-math)" }
               - { label: "제목", name: "title", widget: "string" }
               - { label: "작성일", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
