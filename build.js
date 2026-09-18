@@ -4,7 +4,7 @@ const data=JSON.parse(fs.readFileSync(path.join(ROOT,'content/posts.json'),'utf8
 // CMS 저장 단계에서 _helper가 남더라도 사이트 생성이 멈추지 않도록 한 번 더 병합합니다.
 const normalized=(data.posts||[]).map(p=>{
   if(!p||!p._helper)return p;
-  try{const h=typeof p._helper==='string'?JSON.parse(p._helper):p._helper;return h&&typeof h==='object'?{...p,...h}:p;}catch(e){return p;}
+  try{const h=typeof p._helper==='string'?JSON.parse(p._helper):p._helper;return h&&typeof h==='object'?{...h,...p}:p;}catch(e){return p;}
 });
 const posts=normalized.filter(p=>p && p.slug && p.title && p.published!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -20,6 +20,14 @@ const html=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta nam
 fs.writeFileSync(path.join(ROOT,'posts',p.slug+'.html'),html);}
 const cards=posts.map(p=>`<a class="post-card" href="posts/${p.slug}.html"><small>${esc(p.category)}</small><h3>${esc(p.title)}</h3><p>${esc(p.excerpt)}</p><span class="post-arrow">자세히 읽기 →</span></a>`).join('');
 let blog=fs.readFileSync(path.join(ROOT,'blog.html'),'utf8'); const start=blog.indexOf('<div class="post-grid">'), end=start>=0?blog.indexOf('</div>',start):-1; if(start>=0&&end>=0) blog=blog.slice(0,start)+`<div class="post-grid">${cards}</div>`+blog.slice(end+6); fs.writeFileSync(path.join(ROOT,'blog.html'),blog);
+// 메인 홈페이지 최신 교육정보 3개 자동 연결
+const homeCards=posts.slice(0,3).map(p=>`<a class="home-edu-card" href="posts/${p.slug}.html">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.imageAlt||p.title)}">`:''}<div><small>${esc([p.region,p.category].filter(Boolean).join(' · '))}</small><h3>${esc(p.title)}</h3><p>${esc(p.excerpt)}</p><b>교육정보 보기 →</b></div></a>`).join('');
+const homeSection=`<!-- WAWA_EDU_START --><section class="home-education reveal" id="education"><div class="home-edu-head"><div><p class="eyebrow">WAWA EDUCATION CONTENT</p><h2>최신 교육정보</h2><p>학생과 학부모가 실제로 궁금해하는 학습·학원 선택 정보를 확인해보세요.</p></div><a href="blog.html">교육정보 전체보기 →</a></div><div class="home-edu-grid">${homeCards||'<p class="home-edu-empty">등록된 교육정보가 없습니다.</p>'}</div></section><!-- WAWA_EDU_END -->`;
+let home=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const hs=home.indexOf('<!-- WAWA_EDU_START -->'), he=home.indexOf('<!-- WAWA_EDU_END -->');
+if(hs>=0&&he>=0) home=home.slice(0,hs)+homeSection+home.slice(he+'<!-- WAWA_EDU_END -->'.length);
+else { const anchor='<section id="consult"'; const ai=home.indexOf(anchor); if(ai>=0) home=home.slice(0,ai)+homeSection+home.slice(ai); else home=home.replace('</main>',homeSection+'</main>'); }
+fs.writeFileSync(path.join(ROOT,'index.html'),home);
 fs.writeFileSync(path.join(ROOT,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${SITE}/</loc></url><url><loc>${SITE}/blog.html</loc></url>${posts.map(p=>`<url><loc>${SITE}/posts/${p.slug}.html</loc><lastmod>${p.date}</lastmod></url>`).join('')}</urlset>`);
 fs.writeFileSync(path.join(ROOT,'rss.xml'),`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>WAWA 교육정보</title><link>${SITE}/blog.html</link><description>WAWA 학습·교육정보</description>${posts.slice(0,30).map(p=>`<item><title><![CDATA[${p.title}]]></title><link>${SITE}/posts/${p.slug}.html</link><description><![CDATA[${p.excerpt}]]></description><pubDate>${new Date(p.date+'T09:00:00+09:00').toUTCString()}</pubDate><guid>${SITE}/posts/${p.slug}.html</guid></item>`).join('')}</channel></rss>`);
 fs.writeFileSync(path.join(ROOT,'robots.txt'),`User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: ${SITE}/sitemap.xml\n`);

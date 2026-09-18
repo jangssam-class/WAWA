@@ -407,11 +407,71 @@
             var value = payload[key];
             if (value !== undefined && value !== null && value !== '') next = next.set(key, value);
           });
-          if (next.delete) next = next.delete('_helper');
+          // _helper는 의도적으로 남깁니다. Decap이 일부 형제 필드를 누락해도
+          // Netlify build.js가 이 원본 JSON을 다시 병합해 게시글을 복구할 수 있습니다.
           return next;
         });
         return data.set('posts', merged);
       }
     });
   }
+
+  // 오른쪽 미리보기: 실제 게시 페이지와 같은 구조로 표시합니다.
+  function previewPostFromData(data) {
+    var raw = data && data.toJS ? data.toJS() : (data || {});
+    var list = raw.posts || [];
+    if (!list.length) return {};
+    var p = list[0] || {};
+    if (p._helper) {
+      try {
+        var helper = typeof p._helper === 'string' ? JSON.parse(p._helper) : p._helper;
+        if (helper && typeof helper === 'object') p = Object.assign({}, helper, p);
+      } catch (e) {}
+    }
+    return p;
+  }
+
+  function previewParagraphs(body) {
+    var lines = String(body || '').split(/\n+/).filter(Boolean);
+    return lines.map(function(line, i) {
+      if (line.indexOf('## ') === 0) return h('h2', {key:'h'+i, style:{fontSize:'27px',margin:'38px 0 12px',color:'#082a60'}}, line.slice(3));
+      return h('p', {key:'p'+i, style:{fontSize:'16px',lineHeight:'1.85',color:'#344d70',margin:'0 0 15px'}}, line.replace(/^#\s*/,''));
+    });
+  }
+
+  var WawaPreview = createClass({
+    render: function() {
+      var p = previewPostFromData(this.props.entry && this.props.entry.getIn ? this.props.entry.getIn(['data']) : null);
+      var image = p.image;
+      try { if (image && this.props.getAsset) image = this.props.getAsset(image).toString(); } catch(e) {}
+      var detail = p.detailImage;
+      try { if (detail && this.props.getAsset) detail = this.props.getAsset(detail).toString(); } catch(e) {}
+      var body = previewParagraphs(p.body);
+      var detailNode = detail ? h('img',{src:detail,alt:p.detailImageAlt||p.title||'',style:{width:'100%',height:'auto',display:'block',borderRadius:'16px',margin:'28px 0'}}) : null;
+      if (detailNode) {
+        if (p.detailImagePosition === 'top') body.unshift(detailNode);
+        else if (p.detailImagePosition === 'bottom') body.push(detailNode);
+        else body.splice(Math.max(1,Math.ceil(body.length/2)),0,detailNode);
+      }
+      return h('div',{style:{fontFamily:'Pretendard, Noto Sans KR, Arial, sans-serif',background:'#fff',color:'#12284b',minHeight:'100vh'}},
+        h('main',{style:{maxWidth:'860px',margin:'0 auto',padding:'42px 28px'}},
+          h('div',{style:{fontSize:'13px',color:'#6b7f99',marginBottom:'18px'}},'홈  >  교육정보  >  '+(p.title||'새 포스팅')),
+          h('span',{style:{display:'inline-block',padding:'6px 11px',borderRadius:'999px',background:'#eaf5ff',color:'#247cf2',fontWeight:'800'}},p.category||'교육정보'),
+          h('h1',{style:{fontSize:'36px',lineHeight:'1.28',letterSpacing:'-0.04em',margin:'14px 0'}},p.title||'자동 작성 후 제목이 표시됩니다.'),
+          h('div',{style:{color:'#73869e',marginBottom:'24px'}},[p.date,p.region,p.target].filter(Boolean).join('  ·  ')),
+          image ? h('img',{src:image,alt:p.imageAlt||p.title||'',style:{width:'100%',height:'auto',display:'block',borderRadius:'18px',margin:'0 0 24px'}}) : h('div',{style:{padding:'46px 20px',background:'#f4f8fd',borderRadius:'18px',textAlign:'center',color:'#8293a8',marginBottom:'24px'}},'대표 이미지를 업로드하면 여기에 표시됩니다.'),
+          h('section',{style:{background:'#eef7ff',border:'1px solid #d6eaff',borderRadius:'16px',padding:'20px 22px',margin:'0 0 30px'}},
+            h('b',{style:{display:'block',fontSize:'18px',marginBottom:'6px'}},'한눈에 답하기'),
+            h('div',{style:{lineHeight:'1.75',color:'#344d70'}},p.answer||p.excerpt||'자동 작성 후 핵심답변이 표시됩니다.')
+          ),
+          h('article',null,body),
+          (p.q1||p.q2||p.q3) ? h('section',{style:{marginTop:'45px'}},h('h2',{style:{fontSize:'27px'}},'자주 묻는 질문'),[1,2,3].map(function(n){return p['q'+n]&&p['a'+n]?h('div',{key:n,style:{padding:'17px 0',borderTop:'1px solid #dce8f7'}},h('b',null,p['q'+n]),h('p',{style:{lineHeight:'1.7',color:'#526984'}},p['a'+n])):null;})) : null
+        )
+      );
+    }
+  });
+  // file collection 환경에 따라 파일명/컬렉션명 중 하나를 사용하므로 둘 다 등록합니다.
+  try { CMS.registerPreviewTemplate('posts', WawaPreview); } catch(e) {}
+  try { CMS.registerPreviewTemplate('education_posts', WawaPreview); } catch(e) {}
+
 })();
