@@ -1,7 +1,12 @@
 const fs=require('fs'), path=require('path');
 const ROOT=__dirname, SITE='https://wawa-academy.netlify.app';
 const data=JSON.parse(fs.readFileSync(path.join(ROOT,'content/posts.json'),'utf8'));
-const posts=(data.posts||[]).filter(p=>p && p.slug && p.title && p.published!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+// CMS 저장 단계에서 _helper가 남더라도 사이트 생성이 멈추지 않도록 한 번 더 병합합니다.
+const normalized=(data.posts||[]).map(p=>{
+  if(!p||!p._helper)return p;
+  try{const h=typeof p._helper==='string'?JSON.parse(p._helper):p._helper;return h&&typeof h==='object'?{...p,...h}:p;}catch(e){return p;}
+});
+const posts=normalized.filter(p=>p && p.slug && p.title && p.published!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const md=s=>String(s||'').split(/\n+/).filter(Boolean).map(x=>x.startsWith('## ')?`<h2>${esc(x.slice(3))}</h2>`:`<p>${esc(x)}</p>`).join('\n');
 const detailBlock=p=>{if(!p.detailImage)return '';const src=p.detailImage.startsWith('/')?p.detailImage:'/'+p.detailImage;return `<figure class="detail-page"><img src="${esc(src)}" alt="${esc(p.detailImageAlt||p.title+' 상세페이지')}"></figure>`};

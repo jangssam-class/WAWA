@@ -302,6 +302,14 @@
       }
 
       var payload = makeData(s);
+
+      // 가장 중요한 저장 안전장치:
+      // 자동작성 결과 전체를 이 포스팅 항목의 _helper 값에도 JSON으로 저장합니다.
+      // 왼쪽 화면 갱신과 별개로 Decap이 실제 posts.json에 값을 남길 수 있게 합니다.
+      if (typeof this.props.onChange === 'function') {
+        this.props.onChange(JSON.stringify(payload));
+      }
+
       var applied = applyPayload(this._root, payload);
 
       this.setState({
@@ -371,4 +379,39 @@
   });
 
   CMS.registerWidget('wawa_autofill', Control);
+
+  // 게시 직전 저장 데이터 보정.
+  // 화면에 보이는 값만 바뀌고 JSON에는 빠지는 문제를 막기 위해,
+  // 각 포스팅의 _helper JSON을 실제 형제 필드에 병합한 뒤 _helper는 제거합니다.
+  if (CMS.registerEventListener) {
+    CMS.registerEventListener({
+      name: 'preSave',
+      handler: function (args) {
+        var entry = args && args.entry;
+        if (!entry || !entry.get) return;
+        var data = entry.get('data');
+        if (!data || !data.get) return data;
+        var posts = data.get('posts');
+        if (!posts || !posts.map) return data;
+
+        var merged = posts.map(function (post) {
+          if (!post || !post.get) return post;
+          var raw = post.get('_helper');
+          if (!raw) return post;
+          var payload = null;
+          try { payload = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { payload = null; }
+          if (!payload || typeof payload !== 'object') return post;
+
+          var next = post;
+          Object.keys(payload).forEach(function (key) {
+            var value = payload[key];
+            if (value !== undefined && value !== null && value !== '') next = next.set(key, value);
+          });
+          if (next.delete) next = next.delete('_helper');
+          return next;
+        });
+        return data.set('posts', merged);
+      }
+    });
+  }
 })();
