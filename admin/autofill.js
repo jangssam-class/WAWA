@@ -17,6 +17,10 @@
 
     var BaseControl = base.control;
     var Wrapper = createClass({
+      getInitialState: function () {
+        return { forcedValue: undefined };
+      },
+
       componentDidMount: function () {
         REGISTRY.push(this);
       },
@@ -26,24 +30,47 @@
         if (i >= 0) REGISTRY.splice(i, 1);
       },
 
+      componentWillReceiveProps: function (nextProps) {
+        // Decap 저장 데이터가 새 값으로 따라오면 강제 표시값을 해제합니다.
+        if (this.state.forcedValue !== undefined && nextProps.value === this.state.forcedValue) {
+          this.setState({ forcedValue: undefined });
+        }
+      },
+
+      handleChange: function (value) {
+        // 사용자가 왼쪽 칸을 직접 수정할 때도 Decap 데이터와 화면을 동시에 갱신합니다.
+        this.setState({ forcedValue: value });
+        if (typeof this.props.onChange === 'function') this.props.onChange(value);
+      },
+
       applyAutofill: function (data) {
         if (!data) return false;
         var name = fieldName(this.props);
         if (!name || !Object.prototype.hasOwnProperty.call(data, name)) return false;
         if (typeof this.props.onChange !== 'function') return false;
-        this.props.onChange(data[name]);
+        var value = data[name];
+
+        // 핵심 수정: Decap 원본 데이터(오른쪽 미리보기)뿐 아니라
+        // 이 위젯 자체의 표시값(왼쪽 입력칸)도 즉시 같은 값으로 바꿉니다.
+        this.setState({ forcedValue: value });
+        this.props.onChange(value);
         return true;
       },
 
       render: function () {
         var self = this;
+        var childProps = {};
+        Object.keys(this.props || {}).forEach(function (k) { childProps[k] = self.props[k]; });
+        if (this.state.forcedValue !== undefined) childProps.value = this.state.forcedValue;
+        childProps.onChange = this.handleChange;
+
         return h(
           'div',
           {
             ref: function (el) { self._wrap = el; },
             'data-wawa-field': fieldName(this.props)
           },
-          h(BaseControl, this.props)
+          h(BaseControl, childProps)
         );
       }
     });
