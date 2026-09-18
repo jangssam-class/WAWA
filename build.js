@@ -1,7 +1,7 @@
 const fs=require('fs'), path=require('path');
 const ROOT=__dirname, SITE='https://wawa-academy.netlify.app';
 const data=JSON.parse(fs.readFileSync(path.join(ROOT,'content/posts.json'),'utf8'));
-const posts=(data.posts||[]).filter(p=>p.published!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+const posts=(data.posts||[]).filter(p=>p && p.slug && p.title && p.published!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const md=s=>String(s||'').split(/\n+/).filter(Boolean).map(x=>x.startsWith('## ')?`<h2>${esc(x.slice(3))}</h2>`:`<p>${esc(x)}</p>`).join('\n');
 const detailBlock=p=>{if(!p.detailImage)return '';const src=p.detailImage.startsWith('/')?p.detailImage:'/'+p.detailImage;return `<figure class="detail-page"><img src="${esc(src)}" alt="${esc(p.detailImageAlt||p.title+' 상세페이지')}"></figure>`};
