@@ -13,56 +13,50 @@ public_folder: "/images/blog"
 collections:
   - name: "education_posts"
     label: "WAWA 교육정보 포스팅"
-    files:
-      - name: "posts"
-        label: "포스팅 관리"
-        file: "content/posts.json"
-        format: "json"
-        fields:
-          - label: "포스팅 목록"
-            name: "posts"
-            widget: "list"
-            summary: "{{fields.date}} · {{fields.region}} · {{fields.category}} · {{fields.title}}"
-            label_singular: "포스팅"
-            add_to_top: true
-            minimize_collapsed: true
-            fields:
-              - { label: "✨ 자동 포스팅 작성", name: "_helper", widget: "wawa_autofill", required: false }
-              - { label: "주소용 영문 이름", name: "slug", widget: "wawa_string_autofill", hint: "영문 소문자·숫자·하이픈만 사용 (예: busan-dongnae-middle-math)" , required: false}
-              - { label: "제목", name: "title", widget: "wawa_string_autofill" , required: false}
-              - { label: "작성일", name: "date", widget: "wawa_datetime_autofill", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false , required: false}
-              - { label: "지역", name: "region", widget: "wawa_string_autofill", required: false, hint: "예: 부산 동래구" }
-              - label: "대상"
-                name: "target"
-                widget: "wawa_select_autofill"
-                required: false
-                options: ["초등학생", "중학생", "고등학생", "초중등", "중고등", "초중고"]
-              - label: "카테고리"
-                name: "category"
-                widget: "wawa_select_autofill"
-                required: false
-                options: ["국어", "영어", "수학", "과학", "사회", "국영수", "전과목", "학습관리", "학원선택", "교육소식"]
-              - { label: "검색결과·목록 요약", name: "excerpt", widget: "wawa_text_autofill", hint: "검색결과와 글 목록에 표시되는 1~2문장" , required: false}
-              - { label: "AI 검색 핵심답변", name: "answer", widget: "wawa_text_autofill", required: false, hint: "질문에 바로 답하는 2~4문장" }
-              - { label: "대표 이미지", name: "image", widget: "image", required: false, choose_url: false }
-              - { label: "대표 이미지 설명", name: "imageAlt", widget: "wawa_string_autofill", required: false }
-              - { label: "추천 글", name: "featured", widget: "boolean", default: false , required: false}
-              - { label: "공개", name: "published", widget: "boolean", default: true , required: false}
-              - { label: "본문", name: "body", widget: "wawa_text_autofill", hint: "제목과 주제에 맞는 1,800~2,000자 본문이 자동 입력됩니다. Markdown 문법 사용 가능" , required: false}
-              - { label: "상세페이지 이미지", name: "detailImage", widget: "image", required: false, choose_url: false, hint: "직접 만든 긴 상세페이지 JPG/PNG를 업로드하세요." }
-              - { label: "상세페이지 이미지 설명", name: "detailImageAlt", widget: "string", required: false, hint: "예: 부산 동래구 중학생 수학학원 상세 안내" }
-              - label: "상세페이지 이미지 위치"
-                name: "detailImagePosition"
-                widget: "select"
-                required: false
-                default: "middle"
-                options:
-                  - { label: "본문 상단", value: "top" }
-                  - { label: "본문 중간", value: "middle" }
-                  - { label: "본문 하단", value: "bottom" }
-              - { label: "FAQ 질문 1", name: "q1", widget: "wawa_string_autofill", required: false }
-              - { label: "FAQ 답변 1", name: "a1", widget: "wawa_text_autofill", required: false }
-              - { label: "FAQ 질문 2", name: "q2", widget: "wawa_string_autofill", required: false }
-              - { label: "FAQ 답변 2", name: "a2", widget: "wawa_text_autofill", required: false }
-              - { label: "FAQ 질문 3", name: "q3", widget: "wawa_string_autofill", required: false }
-              - { label: "FAQ 답변 3", name: "a3", widget: "wawa_text_autofill", required: false }
+    folder: "content/posts"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{fields.slug}}"
+    summary: "{{date}} · {{region}} · {{category}} · {{title}}"
+    fields:
+      - { label: "✨ 자동 포스팅 작성", name: "_helper", widget: "wawa_autofill", required: false }
+      - { label: "주소용 영문 이름", name: "slug", widget: "wawa_string_autofill", required: true, hint: "영문 소문자·숫자·하이픈만 사용" }
+      - { label: "제목", name: "title", widget: "wawa_string_autofill", required: true }
+      - { label: "작성일", name: "date", widget: "wawa_datetime_autofill", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true }
+      - { label: "지역", name: "region", widget: "wawa_string_autofill", required: false }
+      - label: "대상"
+        name: "target"
+        widget: "wawa_select_autofill"
+        required: true
+        options: ["초등학생", "중학생", "고등학생", "초중등", "중고등", "초중고"]
+      - label: "카테고리"
+        name: "category"
+        widget: "wawa_select_autofill"
+        required: true
+        options: ["국어", "영어", "수학", "과학", "사회", "국영수", "전과목", "학습관리", "학원선택", "교육소식"]
+      - { label: "검색결과·목록 요약", name: "excerpt", widget: "wawa_text_autofill", required: true }
+      - { label: "AI 검색 핵심답변", name: "answer", widget: "wawa_text_autofill", required: true }
+      - { label: "대표 이미지", name: "image", widget: "image", required: false, choose_url: false }
+      - { label: "대표 이미지 설명", name: "imageAlt", widget: "wawa_string_autofill", required: false }
+      - { label: "추천 글", name: "featured", widget: "boolean", default: false, required: false }
+      - { label: "공개", name: "published", widget: "boolean", default: true, required: false }
+      - { label: "본문", name: "body", widget: "wawa_text_autofill", required: true, hint: "1,800~2,000자 본문이 자동 입력됩니다." }
+      - { label: "상세페이지 이미지", name: "detailImage", widget: "image", required: false, choose_url: false }
+      - { label: "상세페이지 이미지 설명", name: "detailImageAlt", widget: "wawa_string_autofill", required: false }
+      - label: "상세페이지 이미지 위치"
+        name: "detailImagePosition"
+        widget: "select"
+        required: false
+        default: "middle"
+        options:
+          - { label: "본문 상단", value: "top" }
+          - { label: "본문 중간", value: "middle" }
+          - { label: "본문 하단", value: "bottom" }
+      - { label: "FAQ 질문 1", name: "q1", widget: "wawa_string_autofill", required: false }
+      - { label: "FAQ 답변 1", name: "a1", widget: "wawa_text_autofill", required: false }
+      - { label: "FAQ 질문 2", name: "q2", widget: "wawa_string_autofill", required: false }
+      - { label: "FAQ 답변 2", name: "a2", widget: "wawa_text_autofill", required: false }
+      - { label: "FAQ 질문 3", name: "q3", widget: "wawa_string_autofill", required: false }
+      - { label: "FAQ 답변 3", name: "a3", widget: "wawa_text_autofill", required: false }

@@ -380,9 +380,8 @@
 
   CMS.registerWidget('wawa_autofill', Control);
 
-  // 게시 직전 저장 데이터 보정.
-  // 화면에 보이는 값만 바뀌고 JSON에는 빠지는 문제를 막기 위해,
-  // 각 포스팅의 _helper JSON을 실제 형제 필드에 병합한 뒤 _helper는 제거합니다.
+  // 폴더형 컬렉션: 한 게시글 = 한 JSON 파일.
+  // 중첩 list를 제거했기 때문에 자동작성 값이 Decap의 실제 저장 데이터와 1:1로 연결됩니다.
   if (CMS.registerEventListener) {
     CMS.registerEventListener({
       name: 'preSave',
@@ -391,44 +390,32 @@
         if (!entry || !entry.get) return;
         var data = entry.get('data');
         if (!data || !data.get) return data;
-        var posts = data.get('posts');
-        if (!posts || !posts.map) return data;
-
-        var merged = posts.map(function (post) {
-          if (!post || !post.get) return post;
-          var raw = post.get('_helper');
-          if (!raw) return post;
-          var payload = null;
-          try { payload = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { payload = null; }
-          if (!payload || typeof payload !== 'object') return post;
-
-          var next = post;
-          Object.keys(payload).forEach(function (key) {
-            var value = payload[key];
-            if (value !== undefined && value !== null && value !== '') next = next.set(key, value);
-          });
-          // _helper는 의도적으로 남깁니다. Decap이 일부 형제 필드를 누락해도
-          // Netlify build.js가 이 원본 JSON을 다시 병합해 게시글을 복구할 수 있습니다.
-          return next;
+        var raw = data.get('_helper');
+        if (!raw) return data;
+        var payload = null;
+        try { payload = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { payload = null; }
+        if (!payload || typeof payload !== 'object') return data;
+        var next = data;
+        Object.keys(payload).forEach(function (key) {
+          var current = next.get ? next.get(key) : undefined;
+          if ((current === undefined || current === null || current === '') && payload[key] !== undefined && payload[key] !== null) {
+            next = next.set(key, payload[key]);
+          }
         });
-        return data.set('posts', merged);
+        return next;
       }
     });
   }
 
-  // 오른쪽 미리보기: 실제 게시 페이지와 같은 구조로 표시합니다.
   function previewPostFromData(data) {
-    var raw = data && data.toJS ? data.toJS() : (data || {});
-    var list = raw.posts || [];
-    if (!list.length) return {};
-    var p = list[0] || {};
+    var p = data && data.toJS ? data.toJS() : (data || {});
     if (p._helper) {
       try {
         var helper = typeof p._helper === 'string' ? JSON.parse(p._helper) : p._helper;
         if (helper && typeof helper === 'object') p = Object.assign({}, helper, p);
       } catch (e) {}
     }
-    return p;
+    return p || {};
   }
 
   function previewParagraphs(body) {
@@ -470,8 +457,6 @@
       );
     }
   });
-  // file collection 환경에 따라 파일명/컬렉션명 중 하나를 사용하므로 둘 다 등록합니다.
-  try { CMS.registerPreviewTemplate('posts', WawaPreview); } catch(e) {}
-  try { CMS.registerPreviewTemplate('education_posts', WawaPreview); } catch(e) {}
+  CMS.registerPreviewTemplate('education_posts', WawaPreview);
 
 })();

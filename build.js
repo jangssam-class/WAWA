@@ -1,8 +1,13 @@
 const fs=require('fs'), path=require('path');
 const ROOT=__dirname, SITE='https://wawa-academy.netlify.app';
-const data=JSON.parse(fs.readFileSync(path.join(ROOT,'content/posts.json'),'utf8'));
-// CMS 저장 단계에서 _helper가 남더라도 사이트 생성이 멈추지 않도록 한 번 더 병합합니다.
-const normalized=(data.posts||[]).map(p=>{
+const postDir=path.join(ROOT,'content/posts');
+let rawPosts=[];
+if(fs.existsSync(postDir)) for(const name of fs.readdirSync(postDir).filter(n=>n.endsWith('.json'))){try{rawPosts.push(JSON.parse(fs.readFileSync(path.join(postDir,name),'utf8')))}catch(e){console.warn('skip invalid post',name)}}
+// 구버전 단일 posts.json은 기존 글 마이그레이션/호환용으로만 읽고 slug 중복은 폴더형 글을 우선합니다.
+const legacyFile=path.join(ROOT,'content/posts.json');
+if(fs.existsSync(legacyFile)){try{const legacy=JSON.parse(fs.readFileSync(legacyFile,'utf8'));for(const p of (legacy.posts||[]))if(p&&p.slug&&!rawPosts.some(x=>x&&x.slug===p.slug))rawPosts.push(p)}catch(e){}}
+// _helper 안전 복구: 실제 필드가 비어 있을 때만 자동작성 원본으로 채웁니다.
+const normalized=rawPosts.map(p=>{
   if(!p||!p._helper)return p;
   try{const h=typeof p._helper==='string'?JSON.parse(p._helper):p._helper;return h&&typeof h==='object'?{...h,...p}:p;}catch(e){return p;}
 });
