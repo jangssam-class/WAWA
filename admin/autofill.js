@@ -2,6 +2,7 @@
   'use strict';
 
   var EVENT_NAME = 'wawa:autofill-post';
+  var REGISTRY = [];
 
   function fieldName(props) {
     return props && props.field && props.field.get ? props.field.get('name') : '';
@@ -17,23 +18,21 @@
     var BaseControl = base.control;
     var Wrapper = createClass({
       componentDidMount: function () {
-        this._onAutofill = this.handleAutofill.bind(this);
-        document.addEventListener(EVENT_NAME, this._onAutofill);
+        REGISTRY.push(this);
       },
 
       componentWillUnmount: function () {
-        if (this._onAutofill) document.removeEventListener(EVENT_NAME, this._onAutofill);
+        var i = REGISTRY.indexOf(this);
+        if (i >= 0) REGISTRY.splice(i, 1);
       },
 
-      handleAutofill: function (event) {
-        var detail = event && event.detail;
-        if (!detail || !detail.root || !detail.data || !this._wrap) return;
-        if (!detail.root.contains(this._wrap)) return;
-
+      applyAutofill: function (data) {
+        if (!data) return false;
         var name = fieldName(this.props);
-        if (!name || !Object.prototype.hasOwnProperty.call(detail.data, name)) return;
-
-        this.props.onChange(detail.data[name]);
+        if (!name || !Object.prototype.hasOwnProperty.call(data, name)) return false;
+        if (typeof this.props.onChange !== 'function') return false;
+        this.props.onChange(data[name]);
+        return true;
       },
 
       render: function () {
@@ -184,21 +183,48 @@
     };
   }
 
+  function isVisible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
   function findItemRoot(node) {
     var p = node;
-    for (var i = 0; i < 16 && p; i++, p = p.parentElement) {
+    var fallback = null;
+    for (var i = 0; i < 80 && p; i++, p = p.parentElement) {
       if (!p.querySelectorAll) continue;
+      var fields = p.querySelectorAll('[data-wawa-field]');
       var helpers = p.querySelectorAll('[data-wawa-helper="1"]');
-      if (
-        helpers.length === 1 &&
-        p.querySelector('[data-wawa-field="slug"]') &&
-        p.querySelector('[data-wawa-field="title"]') &&
-        p.querySelector('[data-wawa-field="body"]')
-      ) {
-        return p;
-      }
+      if (!fallback && fields.length >= 5) fallback = p;
+      if (helpers.length === 1 && fields.length >= 5) return p;
     }
-    return node && node.parentElement ? node.parentElement : document.body;
+    return fallback || document.body;
+  }
+
+  function applyPayload(helperNode, payload) {
+    var root = findItemRoot(helperNode);
+    var applied = 0;
+
+    // 1차: 현재 펼쳐진 포스팅 항목 안의 필드만 갱신
+    REGISTRY.slice().forEach(function (instance) {
+      if (!instance || !instance._wrap) return;
+      if (root !== document.body && !root.contains(instance._wrap)) return;
+      if (!isVisible(instance._wrap)) return;
+      if (instance.applyAutofill(payload)) applied += 1;
+    });
+
+    // Decap list 위젯의 DOM 깊이가 버전/화면 크기에 따라 달라져 root 탐색이 실패하는 경우가 있습니다.
+    // 이때는 화면에 현재 보이는(=펼쳐진) WAWA 필드만 대상으로 한 번 더 적용합니다.
+    if (applied < 5) {
+      applied = 0;
+      REGISTRY.slice().forEach(function (instance) {
+        if (!instance || !instance._wrap || !isVisible(instance._wrap)) return;
+        if (instance.applyAutofill(payload)) applied += 1;
+      });
+    }
+
+    return applied;
   }
 
   var Control = createClass({
@@ -236,14 +262,13 @@
         return;
       }
 
-      var root = findItemRoot(this._root);
       var payload = makeData(s);
-      document.dispatchEvent(new CustomEvent(EVENT_NAME, {
-        detail: { root: root, data: payload }
-      }));
+      var applied = applyPayload(this._root, payload);
 
       this.setState({
-        msg: '자동 입력 완료! slug·제목·날짜·지역·대상·카테고리·요약·핵심답변·본문·FAQ·이미지 설명을 채웠습니다. 대표 이미지만 직접 업로드한 뒤 게시하세요.'
+        msg: applied >= 5
+          ? '자동 입력 완료! ' + applied + '개 필드를 채웠습니다. 대표 이미지만 직접 업로드한 뒤 게시하세요.'
+          : '자동 입력에 실패했습니다. 현재 화면의 필드 연결을 확인해주세요. (적용 필드: ' + applied + '개)'
       });
     },
 
