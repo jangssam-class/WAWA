@@ -1,12 +1,16 @@
 const fs=require('fs'), path=require('path');
 const ROOT=__dirname, SITE='https://wawa-academy.netlify.app';
-// 한글 이미지명이 GitHub/ZIP에서 #Uxxxx 형태로 보존된 경우, 실제 한글 URL 별칭을 자동 생성합니다.
-const blogImageDir=path.join(ROOT,'images','blog');
-const decodeHashUnicode=name=>name.replace(/#U([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
-if(fs.existsSync(blogImageDir)) for(const name of fs.readdirSync(blogImageDir)){
-  const decoded=decodeHashUnicode(name);
-  if(decoded!==name){const src=path.join(blogImageDir,name),dst=path.join(blogImageDir,decoded);if(!fs.existsSync(dst))fs.copyFileSync(src,dst);}
-}
+// Netlify는 배포 파일명에 # 또는 ? 문자를 허용하지 않습니다.
+// 빌드 시 혹시 남아 있는 잘못된 파일은 배포 대상에서 제거합니다.
+const removeInvalidDeployFiles=dir=>{
+  if(!fs.existsSync(dir))return;
+  for(const ent of fs.readdirSync(dir,{withFileTypes:true})){
+    const fp=path.join(dir,ent.name);
+    if(ent.isDirectory()) removeInvalidDeployFiles(fp);
+    else if(/[?#]/.test(ent.name)){ fs.unlinkSync(fp); console.warn('removed invalid deploy filename:',path.relative(ROOT,fp)); }
+  }
+};
+removeInvalidDeployFiles(ROOT);
 const imageInfo=webPath=>{
   if(!webPath)return null; const fp=path.join(ROOT,String(webPath).replace(/^\/+/,''));
   if(!fs.existsSync(fp))return null;
