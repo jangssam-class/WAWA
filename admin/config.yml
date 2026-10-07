@@ -38,6 +38,7 @@ collections:
         options: ["국어", "영어", "수학", "과학", "사회", "국영수", "전과목", "학습관리", "학원선택", "교육소식"]
       - { label: "검색결과·목록 요약", name: "excerpt", widget: "wawa_text_autofill", required: true }
       - { label: "AI 검색 핵심답변", name: "answer", widget: "wawa_text_autofill", required: true }
+      - { label: "세부키워드", name: "detailKeywords", widget: "hidden", required: false, default: [] }
       - { label: "대표 이미지", name: "image", widget: "image", required: false, choose_url: false }
       - { label: "대표 이미지 설명", name: "imageAlt", widget: "wawa_string_autofill", required: false }
       - { label: "추천 글", name: "featured", widget: "boolean", default: false, required: false }
