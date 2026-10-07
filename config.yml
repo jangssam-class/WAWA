@@ -36,7 +36,7 @@ collections:
         widget: "wawa_select_autofill"
         required: true
         options: ["국어", "영어", "수학", "과학", "사회", "국영수", "전과목", "학습관리", "학원선택", "교육소식"]
-      - { label: "🔎 세부키워드 (자동 선택값)", name: "longtailKeywords", widget: "wawa_string_autofill", required: false, hint: "자동작성에서 선택한 롱테일 키워드가 저장됩니다." }
+      - { label: "세부 키워드", name: "detailKeyword", widget: "wawa_string_autofill", required: false, hint: "자동작성에서 선택한 네이버 롱테일 키워드" }
       - { label: "검색결과·목록 요약", name: "excerpt", widget: "wawa_text_autofill", required: true }
       - { label: "AI 검색 핵심답변", name: "answer", widget: "wawa_text_autofill", required: true }
       - { label: "대표 이미지", name: "image", widget: "image", required: false, choose_url: false }

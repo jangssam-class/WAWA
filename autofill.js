@@ -200,12 +200,42 @@
     return body;
   }
 
+  // 네이버 롱테일(세부) 키워드 추천: 학년/과목/주제 조합에 따라 자동 생성합니다.
+  function detailKeywordOptions(target, subject, topic) {
+    var base = [];
+    var topicMap = {
+      '학원 선택 전 확인할 5가지': ['학원 선택 체크리스트', '학원 상담 전 확인사항', '학원 고르는 기준', '학생에게 맞는 학원 찾는 법'],
+      '성적이 오르지 않는 이유와 공부법': ['성적이 안 오르는 이유', '공부해도 성적이 안 오를 때', '취약단원 찾는 방법', '성적 정체기 공부법'],
+      '내신 대비 공부방법': ['중간고사 내신 대비', '기말고사 내신 대비', '학교 시험 공부 순서', '내신 시험 오답관리'],
+      '시험 전 4주 학습계획': ['시험 4주 공부계획', '시험 한 달 전 공부법', '중간고사 4주 계획', '기말고사 4주 계획'],
+      '기초가 부족한 학생 공부방법': ['기초가 부족한 학생 공부법', '개념이 부족한 학생 공부법', '기초부터 다시 공부하는 방법', '학습 공백 보완 방법'],
+      '오답관리 제대로 하는 방법': ['오답노트 작성법', '틀린 문제 복습 방법', '반복 실수 줄이는 방법', '시험 오답관리 방법'],
+      '학습 습관 만드는 방법': ['매일 공부 습관 만드는 법', '공부 루틴 만드는 방법', '스스로 공부하는 습관', '학습 계획 지키는 방법'],
+      '소수정예 학원의 장점': ['소수정예 수업 장점', '소수정예 학원 효과', '소수정예 맞춤수업', '질문이 많은 학생 소수정예 수업'],
+      '개별진도 수업이 필요한 이유': ['개별진도 수업 장점', '학생별 맞춤 진도', '진도가 느린 학생 공부법', '수준별 맞춤수업'],
+      '학부모가 학원 선택 전 확인할 것': ['학부모 학원 선택 기준', '학원 상담 질문 리스트', '학원 등록 전 확인사항', '우리 아이 학원 고르는 법']
+    };
+    base = (topicMap[topic] || []).slice();
+
+    var subjectMap = {
+      '수학': ['수학 개념 부족 공부법', '수학 오답노트 작성법', '수학 서술형 대비', '수학 계산 실수 줄이는 법'],
+      '영어': ['영어 단어 암기 방법', '영어 문법 기초 공부법', '영어 독해 공부법', '영어 내신 본문 암기법'],
+      '국어': ['국어 독해력 공부법', '국어 비문학 공부법', '국어 어휘력 늘리는 법', '국어 서술형 대비'],
+      '과학': ['과학 개념 정리 방법', '과학 암기 공부법', '과학 서술형 대비', '과학 내신 공부 순서'],
+      '사회': ['사회 암기 공부법', '사회 개념 정리 방법', '사회 내신 공부 순서', '사회 서술형 대비']
+    };
+    (subjectMap[subject] || []).forEach(function(x){ if (base.indexOf(x) < 0) base.push(x); });
+
+    // 학년 표현을 붙여 검색 의도가 더 구체적인 키워드로 만듭니다.
+    var gradePrefix = target || '';
+    return base.slice(0, 8).map(function(x){ return gradePrefix + ' ' + subject + ' ' + x; });
+  }
+
   function makeData(v) {
     var place = (v.region + ' ' + v.subregion).trim().replace(/\s+/g, ' ');
     var points = v.points.length ? v.points.join(', ') : '소수정예, 개별 학습관리';
-    var title = place + ' ' + v.target + ' ' + v.subject + '학원, ' + v.topic;
-    var kws = (v.detailKeywords || []).slice(0, 4);
-    var kwText = kws.join(', ');
+    var seoTopic = (v.detailKeyword || '').trim() || v.topic;
+    var title = place + ' ' + v.target + ' ' + v.subject + '학원, ' + seoTopic;
 
     return {
       slug: makeSlug(v.region, v.subregion, v.target, v.subject, v.topic),
@@ -214,11 +244,11 @@
       region: place,
       target: v.target,
       category: v.subject,
-      longtailKeywords: kwText,
-      excerpt: topicIntro(v, place, points) + (kwText ? ' 함께 살펴볼 세부 검색 주제는 ' + kwText + '입니다.' : ''),
-      answer: v.target + ' ' + v.subject + ' 학습에서는 진도만 빠르게 나가기보다 현재 이해도를 확인하고 질문, 피드백, 오답관리, 시험 대비가 한 흐름으로 이어지는지 살펴보는 것이 중요합니다.' + (kwText ? ' 특히 ' + kws.slice(0, 2).join(', ') + '처럼 구체적인 학습 고민을 기준으로 현재 상태를 점검하면 계획을 세우기 쉽습니다.' : '') + ' WAWA는 소수정예 환경에서 학생별 학습 상태를 확인하고 필요한 부분을 반복 관리하는 방식을 지향합니다.',
+      detailKeyword: seoTopic,
+      excerpt: topicIntro(v, place, points) + ' 세부 검색 주제인 "' + seoTopic + '"도 함께 설명합니다.',
+      answer: seoTopic + '을 찾는 경우, ' + v.target + ' ' + v.subject + ' 학습에서는 진도만 빠르게 나가기보다 현재 이해도를 확인하고 질문, 피드백, 오답관리, 시험 대비가 한 흐름으로 이어지는지 살펴보는 것이 중요합니다. WAWA는 소수정예 환경에서 학생별 학습 상태를 확인하고 필요한 부분을 반복 관리하는 방식을 지향합니다.',
       imageAlt: title + ' 관련 학생 학습 장면',
-      body: buildBody(v, place, points) + (kwText ? '\n\n## 함께 검색하는 세부 학습 키워드\n\n' + kws.map(function(k){ return '**' + k + '**'; }).join(', ') + '처럼 구체적인 고민도 학생의 현재 수준과 시험 일정에 맞춰 함께 점검하는 것이 좋습니다. 키워드 자체를 반복하기보다 실제 학습 문제와 해결 방법을 중심으로 확인하세요.' : ''),
+      body: '## 세부 검색 주제: ' + seoTopic + '\n\n' + seoTopic + '을 중심으로 학생의 현재 학습 상태와 필요한 공부 순서를 구체적으로 살펴봅니다.\n\n' + buildBody(v, place, points),
       q1: place + ' ' + v.target + ' ' + v.subject + '학원을 선택할 때 가장 먼저 볼 것은 무엇인가요?',
       a1: '학생의 현재 수준을 어떻게 진단하는지, 개별 진도와 질문·피드백, 오답관리가 실제 수업에서 어떻게 이루어지는지 확인하는 것이 좋습니다.',
       q2: '소수정예 수업에서는 어떤 점을 확인해야 하나요?',
@@ -281,9 +311,9 @@
         target: '중학생',
         subject: '수학',
         topic: '학원 선택 전 확인할 5가지',
-        points: ['소수정예', '개별 진도', '오답관리', '내신대비'],
-        detailKeywords: [],
+        detailKeyword: '중학생 수학 학원 선택 체크리스트',
         customKeyword: '',
+        points: ['소수정예', '개별 진도', '오답관리', '내신대비'],
         msg: ''
       };
     },
@@ -298,6 +328,14 @@
       } else if (key === 'district') {
         next.neighborhood = ((LOCATION_OPTIONS[this.state.region] || {})[next.district] || [])[0] || '';
       }
+      if (key === 'target' || key === 'subject' || key === 'topic') {
+        var t = key === 'target' ? next.target : this.state.target;
+        var sub = key === 'subject' ? next.subject : this.state.subject;
+        var top = key === 'topic' ? next.topic : this.state.topic;
+        var opts = detailKeywordOptions(t, sub, top);
+        next.detailKeyword = opts[0] || top;
+        next.customKeyword = '';
+      }
       this.setState(next);
     },
 
@@ -309,64 +347,12 @@
       this.setState({ points: points });
     },
 
-    keywordCandidates: function () {
-      var s = this.state;
-      var grade = s.target || '학생';
-      var subject = s.subject || '과목';
-      var topicMap = {
-        '학원 선택 전 확인할 5가지': ['학원 선택 기준', '학원 상담 체크리스트', '학원 고르는 방법', '학생 관리 잘하는 학원'],
-        '성적이 오르지 않는 이유와 공부법': ['성적 안 오르는 이유', '공부해도 성적이 안 오를 때', '취약 단원 공부법', '성적 올리는 공부법'],
-        '내신 대비 공부방법': ['중간고사 대비', '기말고사 대비', '학교 시험 공부법', '서술형 대비'],
-        '시험 전 4주 학습계획': ['시험 4주 공부계획', '시험 한달 전 공부법', '주차별 시험 대비', '시험기간 학습계획'],
-        '기초가 부족한 학생 공부방법': ['기초 부족 공부법', '개념 부족 해결', '기초부터 다시 공부', '기초 실력 올리기'],
-        '오답관리 제대로 하는 방법': ['오답노트 작성법', '틀린 문제 복습법', '반복 실수 줄이기', '오답 분석 방법'],
-        '학습 습관 만드는 방법': ['공부 습관 만들기', '매일 공부 루틴', '자기주도 학습 습관', '공부 집중력 높이기'],
-        '소수정예 학원의 장점': ['소수정예 수업 장점', '소수정예 학원 추천', '개별 피드백 수업', '학생별 맞춤 수업'],
-        '개별진도 수업이 필요한 이유': ['개별진도 수업', '수준별 맞춤 수업', '학생별 진도 관리', '개인별 학습관리'],
-        '학부모가 학원 선택 전 확인할 것': ['학부모 학원 선택 기준', '학원 상담 질문', '학원 비교 방법', '학원 선택 체크리스트']
-      };
-      var subjectMap = {
-        '수학': ['수학 개념 정리', '수학 오답관리', '수학 유형 문제', '수학 기초 부족'],
-        '영어': ['영어 단어 암기', '영어 문법 공부법', '영어 독해 공부법', '영어 내신 대비'],
-        '국어': ['국어 독해 공부법', '국어 문법 정리', '국어 내신 대비', '국어 지문 분석'],
-        '과학': ['과학 개념 정리', '과학 내신 대비', '과학 문제풀이', '과학 오답관리'],
-        '사회': ['사회 암기 공부법', '사회 내신 대비', '사회 개념 정리', '사회 시험 공부법']
-      };
-      var raw = (topicMap[s.topic] || []).concat(subjectMap[subject] || []);
-      var out = [];
-      raw.forEach(function (k) {
-        var v = grade + ' ' + k;
-        if (out.indexOf(v) < 0) out.push(v);
-      });
-      return out.slice(0, 8);
-    },
-
-    toggleKeyword: function (keyword) {
-      var list = this.state.detailKeywords.slice();
-      var i = list.indexOf(keyword);
-      if (i >= 0) list.splice(i, 1);
-      else if (list.length < 4) list.push(keyword);
-      else {
-        this.setState({ msg: '세부키워드는 최대 4개까지 선택할 수 있습니다.' });
-        return;
-      }
-      this.setState({ detailKeywords: list, msg: '' });
-    },
-
-    addCustomKeyword: function () {
-      var k = String(this.state.customKeyword || '').trim();
-      if (!k) return;
-      var list = this.state.detailKeywords.slice();
-      if (list.indexOf(k) < 0 && list.length < 4) list.push(k);
-      this.setState({ detailKeywords: list, customKeyword: '', msg: list.length >= 4 ? '세부키워드 4개가 선택되었습니다.' : '' });
-    },
-
     fill: function (event) {
       event.preventDefault();
       var s = this.state;
       var input = {}; Object.keys(s).forEach(function(k){ input[k]=s[k]; });
       input.subregion = [s.district, s.neighborhood].filter(Boolean).join(' ');
-      input.detailKeywords = s.detailKeywords.slice();
+      input.detailKeyword = (s.customKeyword || '').trim() || s.detailKeyword || s.topic;
       if (!s.region || !s.district || !s.neighborhood || !s.target || !s.subject || !s.topic) {
         this.setState({ msg: '시·도, 시·군·구, 동·센터지역, 대상·과목·주제를 선택해주세요.' });
         return;
@@ -421,18 +407,21 @@
         select('target', ['초등학생', '중학생', '고등학생', '초중등', '중고등', '초중고']),
         select('subject', ['국어', '영어', '수학', '과학', '사회', '국영수', '전과목']),
         select('topic', ['학원 선택 전 확인할 5가지', '성적이 오르지 않는 이유와 공부법', '내신 대비 공부방법', '시험 전 4주 학습계획', '기초가 부족한 학생 공부방법', '오답관리 제대로 하는 방법', '학습 습관 만드는 방법', '소수정예 학원의 장점', '개별진도 수업이 필요한 이유', '학부모가 학원 선택 전 확인할 것']),
-        h('div', { style: { margin: '10px 0 12px', padding: '13px', background: '#fff', border: '1px solid #b8d7ff', borderRadius: '10px' } },
-          h('b', { style: { display: 'block', color: '#0b57a3', marginBottom: '4px' } }, '🔎 네이버 세부키워드 공략'),
-          h('div', { style: { fontSize: '12px', color: '#64748b', marginBottom: '8px' } }, '경쟁이 높은 지역 키워드 대신 검색 의도가 구체적인 키워드를 최대 4개 선택하세요.'),
-          h('div', null, this.keywordCandidates().map(function (x) {
-            var on = self.state.detailKeywords.indexOf(x) >= 0;
-            return h('button', { type: 'button', key: x, onClick: self.toggleKeyword.bind(self, x), style: { padding: '7px 10px', margin: '3px', borderRadius: '16px', border: '1px solid #55a2ff', background: on ? '#0b78f6' : '#f7fbff', color: on ? '#fff' : '#1456a0', cursor: 'pointer', fontSize: '12px' } }, x);
-          })),
-          h('div', { style: { display: 'flex', gap: '6px', marginTop: '8px' } },
-            h('input', { type: 'text', value: self.state.customKeyword, placeholder: '직접 입력 예: 중2 수학 중간고사', onChange: function(e){ self.setState({customKeyword:e.target.value}); }, onKeyDown: function(e){ if(e.key === 'Enter'){ e.preventDefault(); self.addCustomKeyword(); } }, style: { flex: '1', minWidth: 0, padding: '9px', border: '1px solid #cbd5e1', borderRadius: '8px' } }),
-            h('button', { type: 'button', onClick: self.addCustomKeyword.bind(self), style: { padding: '8px 11px', border: 0, borderRadius: '8px', background: '#0b57a3', color: '#fff', cursor: 'pointer' } }, '추가')
-          ),
-          self.state.detailKeywords.length ? h('div', { style: { marginTop: '8px', fontSize: '12px', fontWeight: '700', color: '#0b57a3' } }, '선택: ' + self.state.detailKeywords.join(' · ')) : null
+        h('div', { style: { margin: '8px 0 12px', padding: '12px', border: '2px solid #ff9f1c', borderRadius: '10px', background: '#fff8ed' } },
+          h('b', { style: { display: 'block', marginBottom: '7px', color: '#9a4d00' } }, '🔎 네이버 세부키워드 공략'),
+          h('div', { style: { fontSize: '12px', color: '#7c5a35', marginBottom: '8px' } }, '경쟁이 높은 지역 키워드 대신 검색 의도가 구체적인 롱테일 키워드를 선택하세요.'),
+          h('select', {
+            value: self.state.detailKeyword,
+            onChange: function(e){ self.setState({ detailKeyword: e.target.value, customKeyword: '' }); },
+            style: { width: '100%', padding: '10px', border: '1px solid #f3b562', borderRadius: '8px', background: 'white', marginBottom: '8px' }
+          }, detailKeywordOptions(self.state.target, self.state.subject, self.state.topic).map(function(x){ return h('option', { key: x, value: x }, x); })),
+          h('input', {
+            type: 'text', value: self.state.customKeyword,
+            placeholder: '직접 입력도 가능: 예) 중2 수학 중간고사 서술형 대비',
+            onChange: function(e){ self.setState({ customKeyword: e.target.value }); },
+            style: { width: '100%', boxSizing: 'border-box', padding: '10px', border: '1px solid #f3b562', borderRadius: '8px', background: 'white' }
+          }),
+          h('div', { style: { marginTop: '7px', fontSize: '12px', color: '#9a4d00', fontWeight: '700' } }, '선택 키워드 → 제목 · 요약 · 핵심답변 · 본문에 자동 반영')
         ),
         h(
           'div',
