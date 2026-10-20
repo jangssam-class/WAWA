@@ -10,7 +10,24 @@ const removeInvalidDeployFiles=dir=>{
     else if(/[?#]/.test(ent.name)){ fs.unlinkSync(fp); console.warn('removed invalid deploy filename:',path.relative(ROOT,fp)); }
   }
 };
+// Repair ZIP/GitHub escaped Unicode image filenames before removing invalid names.
+// Keep original CMS JSON intact; generated public image paths are safe ASCII copies.
+const crypto=require('crypto');
+const decodeEscapedName=name=>name.replace(/(?:#U[0-9a-fA-F]{4})+/g,seq=>{
+  try{return seq.replace(/#U([0-9a-fA-F]{4})/g,(_,hex)=>String.fromCharCode(parseInt(hex,16)));}catch(e){return seq;}
+});
+const safeImagePaths=new Map();
+const blogImages=path.join(ROOT,'images/blog');
+if(fs.existsSync(blogImages))for(const name of fs.readdirSync(blogImages)){
+  if(!name.includes('#U'))continue;
+  const original=decodeEscapedName(name);
+  const extension=path.extname(name).toLowerCase();
+  const safe='restored-'+crypto.createHash('sha256').update(original).digest('hex').slice(0,20)+extension;
+  fs.copyFileSync(path.join(blogImages,name),path.join(blogImages,safe));
+  safeImagePaths.set('/images/blog/'+original,'/images/blog/'+safe);
+}
 removeInvalidDeployFiles(ROOT);
+
 const imageInfo=webPath=>{
   if(!webPath)return null; const fp=path.join(ROOT,String(webPath).replace(/^\/+/,''));
   if(!fs.existsSync(fp))return null;
@@ -19,7 +36,7 @@ const imageInfo=webPath=>{
 };
 const postDir=path.join(ROOT,'content/posts');
 let rawPosts=[];
-if(fs.existsSync(postDir)) for(const name of fs.readdirSync(postDir).filter(n=>n.endsWith('.json'))){try{rawPosts.push(JSON.parse(fs.readFileSync(path.join(postDir,name),'utf8')))}catch(e){console.warn('skip invalid post',name)}}
+if(fs.existsSync(postDir)) for(const name of fs.readdirSync(postDir).filter(n=>n.endsWith('.json'))){try{rawPosts.push({...JSON.parse(fs.readFileSync(path.join(postDir,name),'utf8')),_sourceFile:name})}catch(e){console.warn('skip invalid post',name)}}
 // 게시글의 단일 기준(Source of Truth)은 관리자 CMS가 관리하는 content/posts/*.json 뿐입니다.
 // 구버전 content/posts.json은 절대 읽지 않습니다. 관리자에 없는 글이 다시 노출되는 문제를 방지합니다.
 // _helper 안전 복구: 실제 필드가 비어 있을 때만 자동작성 원본으로 채웁니다.
@@ -27,6 +44,30 @@ const normalized=rawPosts.map(p=>{
   if(!p||!p._helper)return p;
   try{const h=typeof p._helper==='string'?JSON.parse(p._helper):p._helper;return h&&typeof h==='object'?{...h,...p}:p;}catch(e){return p;}
 });
+// Never overwrite distinct posts sharing a slug. Preserve the existing indexed URL
+// for the JSON file whose filename exactly matches the slug; assign stable suffixes
+// to colliding newer files. This changes only previously inaccessible collisions.
+const usedSlugs=new Set();
+const canonicalFirst=[...normalized].sort((a,b)=>{
+ const ac=a._sourceFile===a.slug+'.json'?0:1,bc=b._sourceFile===b.slug+'.json'?0:1;
+ return ac-bc || String(a._sourceFile).localeCompare(String(b._sourceFile));
+});
+for(const p of canonicalFirst){
+ if(!p||!p.slug)continue;
+ const old=p.slug;
+ if(usedSlugs.has(old)){
+   let candidate=String(p._sourceFile||'').replace(/\.json$/,'');
+   if(!candidate||usedSlugs.has(candidate)){
+     let n=2;candidate=old+'-'+n;while(usedSlugs.has(candidate))candidate=old+'-'+(++n);
+   }
+   p.slug=candidate;
+   console.warn('POST SLUG COLLISION REPAIRED:',p._sourceFile,old,'=>',candidate);
+ }
+ usedSlugs.add(p.slug);
+ for(const field of ['image','detailImage']){
+   if(p[field]&&safeImagePaths.has(p[field]))p[field]=safeImagePaths.get(p[field]);
+ }
+}
 const centers=JSON.parse(fs.readFileSync(path.join(ROOT,'data/centers.json'),'utf8'));
 const centerByKey=new Map(centers.map((c,i)=>[String(i+1),c]));
 const centerInfo=p=>centerByKey.get(String(p.centerKey||''));
